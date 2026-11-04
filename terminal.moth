@@ -1,0 +1,724 @@
+# For programs run in a terminal: colours and styles, tables lined up in columns, boxes, progress bars that
+# draw over themselves, and spinners. With the ANSI codes every Linux and Mac terminal, and Windows Terminal,
+# understand. In Moth alone, so it works everywhere.
+#
+#   use the package "terminal" as terminal
+#   say terminal's red("error:") " the file isn't there"
+#   say terminal's bold(terminal's green("done")) " " terminal's colored("note", "bright cyan")
+#   say terminal's on_color(" PASS ", "green") " " terminal's rgb("orange", 255, 140, 0)
+#   set people to list of (record with name "Ana", age 31), (record with name "Bo", age 7)
+#   say terminal's table(people)                                 # lines around it; or:
+#   say terminal's table(people, nothing, "markdown")            # headers (nothing: the fields), and a style
+#   say terminal's box("Moth 1.11\nready", "round")
+#   say terminal's progress_bar(30, 120, 20)                     # █████░░░░░░░░░░░░░░░  25%
+#   for each k from 1 to 120
+#       say terminal's again(terminal's progress_bar(k, 120, 20))    # the line before, drawn over
+#   end
+#
+# Colours: black, red, green, yellow, blue, magenta, cyan, white and gray, each also "bright ...", or "#ff8800";
+# colored(words, colour) for the words, on_color(words, colour) behind them, and rgb / on_rgb for any colour.
+# Styles: bold, dim, italic, underline, inverse and strike. Each puts its codes around the words, and they nest:
+# red(bold("a") + "b") is red all through. link(words, address) makes words a terminal can open.
+#
+# plain(words) is the words with every code taken out, and width(words) how many columns they take: codes take
+# none, and Chinese, Japanese, Korean and most emoji take two. aligned(words, width, side) pads them to a width
+# ("left", "right" or "center"), by that.
+#
+# table(rows, headers, style) takes a list of records or dictionaries (the headers are the fields to show, in
+# order: all of the first row's if nothing is given) or a list of lists (with headers given, or none); numbers
+# are put on the right. Its style is "box" (lines, if none is given), "ascii" (+ - |), "plain" (columns, and a
+# line under the headers) or "markdown". A cell can have new lines in it. box(words, style) puts lines around
+# words: "box", "round", "double" or "ascii".
+#
+# set_colors(no) makes every function here give back the words as they are, for output to a file, or a
+# --no-color option; again(words) then gives the words, to be said below the last ones.
+
+set terminal_escape to 1 bytes
+set byte 1 of terminal_escape to 27
+set terminal_escape to terminal_escape as text
+set terminal_bell to 1 bytes
+set byte 1 of terminal_bell to 7
+set terminal_bell to terminal_bell as text
+set terminal_using_colors to yes
+
+# where each colour's code is: its foreground code; its background is 10 more, and "bright" 60 more
+set terminal_color_codes to dictionary where "black" is 30, "red" is 31, "green" is 32, "yellow" is 33,
+    "blue" is 34, "magenta" is 35, "cyan" is 36, "white" is 37, "gray" is 90, "grey" is 90
+
+# the letters (as code points) that take two columns, and those that take none, as pairs of first and last
+set terminal_wide to list of 4352, 4447, 8986, 8987, 9001, 9002, 9193, 9196, 9200, 9200, 9203, 9203, 9725, 9726,
+    9748, 9749, 9800, 9811, 9855, 9855, 9875, 9875, 9889, 9889, 9898, 9899, 9917, 9918, 9924, 9925, 9934, 9934,
+    9940, 9940, 9962, 9962, 9970, 9971, 9973, 9973, 9978, 9978, 9981, 9981, 9989, 9989, 9994, 9995, 10024,
+    10024, 10060, 10060, 10062, 10062, 10067, 10069, 10071, 10071, 10133, 10135, 10160, 10160, 10175, 10175,
+    11035, 11036, 11088, 11088, 11093, 11093, 11904, 12350, 12353, 13311, 13312, 19903, 19968, 40959, 40960,
+    42191, 43360, 43391, 44032, 55203, 63744, 64255, 65040, 65049, 65072, 65135, 65280, 65376, 65504, 65510,
+    126980, 126980, 127183, 127183, 127374, 127374, 127377, 127386, 127488, 127743, 127744, 128591, 128640,
+    128767, 129008, 129019, 129292, 129535, 129648, 129791, 131072, 196605, 196608, 262141
+set terminal_none to list of 768, 879, 1155, 1161, 1425, 1469, 1552, 1562, 1611, 1631, 8203, 8207, 8232, 8238,
+    8288, 8292, 8400, 8447, 65024, 65039, 65056, 65071, 65279, 65279, 127995, 127999, 917760, 917999
+
+# ---------- colours and styles ----------
+
+# whether the functions here put codes in: yes at first
+to set_colors with on
+    set terminal_using_colors to on
+end
+
+to colors_are_on
+    return terminal_using_colors
+end
+
+to bold with words
+    return terminal_wrap(words, "1", "22")
+end
+
+to dim with words
+    return terminal_wrap(words, "2", "22")
+end
+
+to italic with words
+    return terminal_wrap(words, "3", "23")
+end
+
+to underline with words
+    return terminal_wrap(words, "4", "24")
+end
+
+to inverse with words
+    return terminal_wrap(words, "7", "27")
+end
+
+to strike with words
+    return terminal_wrap(words, "9", "29")
+end
+
+to black with words
+    return colored(words, "black")
+end
+
+to red with words
+    return colored(words, "red")
+end
+
+to green with words
+    return colored(words, "green")
+end
+
+to yellow with words
+    return colored(words, "yellow")
+end
+
+to blue with words
+    return colored(words, "blue")
+end
+
+to magenta with words
+    return colored(words, "magenta")
+end
+
+to cyan with words
+    return colored(words, "cyan")
+end
+
+to white with words
+    return colored(words, "white")
+end
+
+to gray with words
+    return colored(words, "gray")
+end
+
+# the words in a colour: a name such as "red" or "bright red", or "#ff8800"
+to colored with words, color
+    return terminal_wrap(words, terminal_color_code(color, 0), "39")
+end
+
+# the words on a colour behind them
+to on_color with words, color
+    return terminal_wrap(words, terminal_color_code(color, 10), "49")
+end
+
+# the words in any colour: red, green and blue from 0 to 255
+to rgb with words, r, g, b
+    return terminal_wrap(words, "38;2;" + terminal_channels(r, g, b), "39")
+end
+
+to on_rgb with words, r, g, b
+    return terminal_wrap(words, "48;2;" + terminal_channels(r, g, b), "49")
+end
+
+# words a terminal shows as a link to the address (OSC 8); others show the words alone
+to link with words, address
+    if not terminal_using_colors
+        return "" + words
+    end
+    set e to terminal_escape
+    return e + "]8;;" + address + e + "\\" + words + e + "]8;;" + e + "\\"
+end
+
+# the codes around the words, with the opening code put back after each close of the same kind inside them,
+# so styles nest
+to terminal_wrap with words, open, close
+    set given to "" + words
+    if not terminal_using_colors
+        return given
+    end
+    set opening to terminal_escape + "[" + open + "m"
+    set closing to terminal_escape + "[" + close + "m"
+    if position of closing in given is greater than 0
+        set given to join (split given by closing) with (closing + opening)
+    end
+    return opening + given + closing
+end
+
+to terminal_color_code with color, plus
+    set name to lowercase of terminal_trimmed("" + color)
+    if length of name is 7 and item 1 of name is "#"
+        set r to terminal_hex(items 2 to 3 of name)
+        set g to terminal_hex(items 4 to 5 of name)
+        set b to terminal_hex(items 6 to 7 of name)
+        if r is not nothing and g is not nothing and b is not nothing
+            return "" + (38 + plus) + ";2;" + r + ";" + g + ";" + b
+        end
+    end
+    set bright to 0
+    if length of name is greater than 7 and (items 1 to 7 of name) is "bright "
+        set bright to 60
+        set name to terminal_trimmed(items 8 to length of name of name)
+    end
+    if not (name is in terminal_color_codes)
+        fail with "'" + color + "' isn't a colour the terminal knows: black, red, green, yellow, blue, magenta, "
+            + "cyan, white or gray, each also bright, or one such as #ff8800"
+    end
+    set code to (item name of terminal_color_codes) + bright
+    if code is greater than 97
+        set code to 97 # bright gray is white
+    end
+    return "" + (code + plus)
+end
+
+to terminal_channels with r, g, b
+    set made to empty list
+    for each c in list of r, g, b
+        add "" + terminal_channel(c) to made
+    end
+    return join made with ";"
+end
+
+to terminal_channel with c
+    if c is less than 0
+        return 0
+    else if c is greater than 255
+        return 255
+    end
+    return c rounded
+end
+
+# two hex digits as a number, or nothing
+to terminal_hex with two
+    set digits to "0123456789abcdef"
+    set high to position of (item 1 of two) in digits
+    set low to position of (item 2 of two) in digits
+    if high is 0 or low is 0
+        return nothing
+    end
+    return (high - 1) * 16 + low - 1
+end
+
+# ---------- widths ----------
+
+# the words with every code taken out: colours, styles, links and moves
+to plain with words
+    set given to "" + words
+    set e to terminal_escape
+    if position of e in given is 0
+        return given
+    end
+    set made to empty list
+    set k to 1
+    set count to length of given
+    repeat while k is at most count
+        set c to item k of given
+        if c is e and k is less than count and item (k + 1) of given is "["
+            # a control sequence: up to a letter from @ to ~
+            set k to k + 2
+            repeat while k is at most count and not terminal_is_final(item k of given)
+                add 1 to k
+            end
+            add 1 to k
+        else if c is e and k is less than count and item (k + 1) of given is "]"
+            # an operating system command, such as a link: up to a bell, or ESC \
+            set k to k + 2
+            set ended to no
+            repeat while k is at most count and not ended
+                if item k of given is terminal_bell
+                    set ended to yes
+                    add 1 to k
+                else if item k of given is e and k is less than count and item (k + 1) of given is "\\"
+                    set ended to yes
+                    set k to k + 2
+                else
+                    add 1 to k
+                end
+            end
+        else
+            add c to made
+            add 1 to k
+        end
+    end
+    return join made with ""
+end
+
+to terminal_is_final with c
+    set code to byte 1 of (c as bytes)
+    return code is at least 64 and code is at most 126
+end
+
+# how many columns the words take in a terminal: the widest of their lines
+to width with words
+    set widest to 0
+    for each line in split plain(words) by "\n"
+        set w to terminal_line_width(line)
+        if w is greater than widest
+            set widest to w
+        end
+    end
+    return widest
+end
+
+to terminal_line_width with line
+    set w to 0
+    for each c in line
+        set codes to c as bytes
+        if length of codes is 1
+            if byte 1 of codes is at least 32 and byte 1 of codes is not 127
+                add 1 to w
+            end
+        else
+            set w to w + terminal_letter_width(terminal_point(codes))
+        end
+    end
+    return w
+end
+
+to terminal_letter_width with point
+    if terminal_in_ranges(point, terminal_none)
+        return 0
+    else if terminal_in_ranges(point, terminal_wide)
+        return 2
+    end
+    return 1
+end
+
+to terminal_in_ranges with point, ranges
+    set k to 1
+    repeat while k is less than length of ranges
+        if point is less than item k of ranges
+            return no
+        else if point is at most item (k + 1) of ranges
+            return yes
+        end
+        set k to k + 2
+    end
+    return no
+end
+
+# a letter's code point, from its UTF-8 bytes
+to terminal_point with codes
+    set first to byte 1 of codes
+    if length of codes is 2
+        return (first bit and 31) * 64 + (byte 2 of codes bit and 63)
+    else if length of codes is 3
+        return (first bit and 15) * 4096 + (byte 2 of codes bit and 63) * 64 + (byte 3 of codes bit and 63)
+    end
+    return (first bit and 7) * 262144 + (byte 2 of codes bit and 63) * 4096 + (byte 3 of codes bit and 63) * 64
+        + (byte 4 of codes bit and 63)
+end
+
+# the words with spaces to make them `size` columns wide: on the right for "left", on the left for "right",
+# or on both sides for "center"; words already that wide stay as they are
+to aligned with words, size, side or "left"
+    set given to "" + words
+    set room to size - width(given)
+    if room is at most 0
+        return given
+    end
+    if side is "right"
+        return terminal_spaces(room) + given
+    else if side is "center"
+        set before to room / 2 rounded down
+        return terminal_spaces(before) + given + terminal_spaces(room - before)
+    else if side is not "left"
+        fail with "aligned takes \"left\", \"right\" or \"center\", not '" + side + "'"
+    end
+    return given + terminal_spaces(room)
+end
+
+to terminal_spaces with n
+    return terminal_repeated(" ", n)
+end
+
+to terminal_repeated with words, n
+    set made to empty list
+    repeat n times
+        add words to made
+    end
+    return join made with ""
+end
+
+# ---------- tables ----------
+
+# rows lined up in columns, as text to say: a list of records or dictionaries, or of lists
+to table with rows, headers or nothing, style or "box"
+    set plain_rows to terminal_rows(rows)
+    set columns to headers
+    set keyed to no
+    if length of plain_rows is greater than 0 and terminal_is_dictionary(item 1 of plain_rows)
+        set keyed to yes
+        if columns is nothing
+            set columns to keys of item 1 of plain_rows
+        end
+    end
+    set cells to empty list
+    for each row in plain_rows
+        set line to empty list
+        if keyed
+            for each column in columns
+                if column is in row
+                    add item column of row to line
+                else
+                    add nothing to line
+                end
+            end
+        else
+            for each value in row
+                add value to line
+            end
+        end
+        add line to cells
+    end
+    set count to 0
+    if columns is not nothing
+        set count to length of columns
+    end
+    for each line in cells
+        if length of line is greater than count
+            set count to length of line
+        end
+    end
+    if count is 0
+        return ""
+    end
+    # each cell as its lines of text, and whether it's a number (put on the right)
+    set texts to empty list
+    set numbers to empty list
+    for each line in cells
+        set shown to empty list
+        set on_right to empty list
+        for each k from 1 to count
+            set value to nothing
+            if k is at most length of line
+                set value to item k of line
+            end
+            add (split terminal_cell(value) by "\n") to shown
+            add terminal_is_number(value) to on_right
+        end
+        add shown to texts
+        add on_right to numbers
+    end
+    set head to nothing
+    if columns is not nothing
+        set head to empty list
+        for each k from 1 to count
+            if k is at most length of columns
+                add (split terminal_cell(item k of columns) by "\n") to head
+            else
+                add (list of "") to head
+            end
+        end
+    end
+    set widths to empty list
+    for each k from 1 to count
+        set w to 0
+        if head is not nothing
+            set w to width(join item k of head with "\n")
+        end
+        for each shown in texts
+            set cw to width(join item k of shown with "\n")
+            if cw is greater than w
+                set w to cw
+            end
+        end
+        if style is "markdown" and w is less than 3
+            set w to 3
+        end
+        add w to widths
+    end
+    # a header is on the right over a column of numbers
+    set head_rights to empty list
+    for each k from 1 to count
+        set any to no
+        set all to yes
+        for each line in cells
+            if k is at most length of line and item k of line is not nothing
+                if terminal_is_number(item k of line)
+                    set any to yes
+                else
+                    set all to no
+                end
+            end
+        end
+        add (any and all) to head_rights
+    end
+    return terminal_draw(head, head_rights, texts, numbers, widths, style)
+end
+
+# what a table needs of the rows: JSON's values, so a record's fields can be found by name
+to terminal_rows with rows
+    try
+        return json from (rows as json)
+    if it fails with why
+        fail with "a table needs rows of records, dictionaries or lists: " + why
+    end
+end
+
+to terminal_is_dictionary with value
+    try
+        if length of keys of value is at least 0
+            return yes
+        end
+    if it fails
+        return no
+    end
+    return no
+end
+
+to terminal_is_number with value
+    if value is nothing or value is yes or value is no
+        return no
+    end
+    try
+        if value - 0 is value
+            return yes
+        end
+    if it fails
+        return no
+    end
+    return no
+end
+
+to terminal_cell with value
+    if value is nothing
+        return ""
+    end
+    return "{value}"
+end
+
+to terminal_draw with head, head_rights, texts, numbers, widths, style
+    set lines to empty list
+    set count to length of widths
+    if style is "box" or style is "ascii"
+        set ascii to style is "ascii"
+        set marks to list of "┌", "┬", "┐", "├", "┼", "┤", "└", "┴", "┘", "─", "│"
+        if ascii
+            set marks to list of "+", "+", "+", "+", "+", "+", "+", "+", "+", "-", "|"
+        end
+        set bar to item 10 of marks
+        set side to item 11 of marks
+        add terminal_rule(widths, bar, item 1 of marks, item 2 of marks, item 3 of marks) to lines
+        if head is not nothing
+            terminal_row_lines(lines, head, head_rights, widths, side + " ", " " + side + " ", " " + side)
+            add terminal_rule(widths, bar, item 4 of marks, item 5 of marks, item 6 of marks) to lines
+        end
+        for each k from 1 to length of texts
+            terminal_row_lines(lines, item k of texts, item k of numbers, widths, side + " ", " " + side + " ",
+                " " + side)
+        end
+        add terminal_rule(widths, bar, item 7 of marks, item 8 of marks, item 9 of marks) to lines
+    else if style is "plain"
+        if head is not nothing
+            terminal_row_lines(lines, head, head_rights, widths, "", "  ", "")
+            set rules to empty list
+            for each w in widths
+                add terminal_repeated("-", w) to rules
+            end
+            add terminal_trailing_gone(join rules with "  ") to lines
+        end
+        for each k from 1 to length of texts
+            terminal_row_lines(lines, item k of texts, item k of numbers, widths, "", "  ", "")
+        end
+    else if style is "markdown"
+        set head_row to head
+        if head_row is nothing
+            set head_row to empty list
+            for each k from 1 to count
+                add (list of "") to head_row
+            end
+        end
+        terminal_row_lines(lines, terminal_one_line(head_row), head_rights, widths, "| ", " | ", " |")
+        set rules to empty list
+        for each k from 1 to count
+            set at_right to no
+            for each kept in numbers
+                if item k of kept
+                    set at_right to yes
+                end
+            end
+            if at_right
+                add terminal_repeated("-", item k of widths - 1) + ":" to rules
+            else
+                add terminal_repeated("-", item k of widths) to rules
+            end
+        end
+        add "| " + (join rules with " | ") + " |" to lines
+        for each k from 1 to length of texts
+            terminal_row_lines(lines, terminal_one_line(item k of texts), item k of numbers, widths, "| ", " | ",
+                " |")
+        end
+    else
+        fail with "a table's style is \"box\", \"ascii\", \"plain\" or \"markdown\", not '" + style + "'"
+    end
+    return join lines with "\n"
+end
+
+# a markdown row is one line: its cells' lines joined with <br>
+to terminal_one_line with row
+    set made to empty list
+    for each shown in row
+        add (list of (join shown with "<br>")) to made
+    end
+    return made
+end
+
+to terminal_rule with widths, bar, opening, between, closing
+    set parts to empty list
+    for each w in widths
+        add terminal_repeated(bar, w + 2) to parts
+    end
+    return opening + (join parts with between) + closing
+end
+
+# a row's lines added to `lines`: as many as its tallest cell has
+to terminal_row_lines with lines, row, rights, widths, opening, between, closing
+    set tall to 1
+    for each shown in row
+        if length of shown is greater than tall
+            set tall to length of shown
+        end
+    end
+    for each n from 1 to tall
+        set parts to empty list
+        for each k from 1 to length of widths
+            set shown to item k of row
+            set words to ""
+            if n is at most length of shown
+                set words to item n of shown
+            end
+            set side to "left"
+            if rights is not nothing and item k of rights
+                set side to "right"
+            end
+            add aligned(words, item k of widths, side) to parts
+        end
+        set made to opening + (join parts with between) + closing
+        if closing is ""
+            set made to terminal_trailing_gone(made)
+        end
+        add made to lines
+    end
+end
+
+to terminal_trailing_gone with words
+    set upto to length of words
+    repeat while upto is at least 1 and item upto of words is " "
+        set upto to upto - 1
+    end
+    if upto is 0
+        return ""
+    end
+    return items 1 to upto of words
+end
+
+# ---------- boxes, bars and spinners ----------
+
+# lines around the words, a space inside them: style "box", "round", "double" or "ascii"
+to box with words, style or "box"
+    set marks to nothing
+    if style is "box"
+        set marks to list of "┌", "┐", "└", "┘", "─", "│"
+    else if style is "round"
+        set marks to list of "╭", "╮", "╰", "╯", "─", "│"
+    else if style is "double"
+        set marks to list of "╔", "╗", "╚", "╝", "═", "║"
+    else if style is "ascii"
+        set marks to list of "+", "+", "+", "+", "-", "|"
+    else
+        fail with "a box's style is \"box\", \"round\", \"double\" or \"ascii\", not '" + style + "'"
+    end
+    set lines to split ("" + words) by "\n"
+    set w to width(words)
+    set made to empty list
+    add item 1 of marks + terminal_repeated(item 5 of marks, w + 2) + item 2 of marks to made
+    for each line in lines
+        add item 6 of marks + " " + aligned(line, w) + " " + item 6 of marks to made
+    end
+    add item 3 of marks + terminal_repeated(item 5 of marks, w + 2) + item 4 of marks to made
+    return join made with "\n"
+end
+
+# a bar `size` letters long, as full as done is of out_of, and how full, as a percentage
+to progress_bar with done, out_of, size or 30
+    set part to 1
+    if out_of is greater than 0
+        set part to done / out_of
+    end
+    if part is less than 0
+        set part to 0
+    else if part is greater than 1
+        set part to 1
+    end
+    set full to (part * size) rounded down
+    set whole to (part * 100) rounded down
+    set percent to "" + whole + "%"
+    return terminal_repeated("█", full) + terminal_repeated("░", size - full) + " " + aligned(percent, 4, "right")
+end
+
+# what a spinner shows at step n: one of ten, then round again
+to spinner with n
+    set frames to list of "⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"
+    set step to remainder of (n - 1) divided by 10
+    return item (step + 1) of frames
+end
+
+# the words, said over the line (or lines) said last: say terminal's again(bar)
+to again with words
+    set given to "" + words
+    if not terminal_using_colors
+        return given
+    end
+    set lines to length of (split given by "\n")
+    return terminal_repeated(terminal_escape + "[1A" + terminal_escape + "[2K", lines) + given
+end
+
+# the codes that clear the terminal and put the cursor at its top left
+to clear_screen
+    if not terminal_using_colors
+        return ""
+    end
+    return terminal_escape + "[2J" + terminal_escape + "[H"
+end
+
+to terminal_trimmed with words
+    set from to 1
+    set upto to length of words
+    repeat while from is at most upto and item from of words is " "
+        add 1 to from
+    end
+    repeat while upto is at least from and item upto of words is " "
+        set upto to upto - 1
+    end
+    if from is greater than upto
+        return ""
+    end
+    return items from to upto of words
+end

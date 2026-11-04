@@ -1,0 +1,121 @@
+# terminal.moth's tests: moth test terminal.test.moth
+
+use "terminal.moth" as terminal
+
+# the escape character, to write the codes the tests expect
+to esc
+    set one to 1 bytes
+    set byte 1 of one to 27
+    return one as text
+end
+
+to test_colors_and_styles
+    set e to esc()
+    expect terminal's red("x") is e + "[31mx" + e + "[39m"
+    expect terminal's bold("x") is e + "[1mx" + e + "[22m"
+    expect terminal's on_color("x", "green") is e + "[42mx" + e + "[49m"
+    expect terminal's colored("x", "bright red") is e + "[91mx" + e + "[39m"
+    expect terminal's on_color("x", "Bright Blue") is e + "[104mx" + e + "[49m"
+    expect terminal's colored("x", "gray") is e + "[90mx" + e + "[39m"
+    expect terminal's colored("x", "#ff8800") is e + "[38;2;255;136;0mx" + e + "[39m"
+    expect terminal's on_color("x", "#FF8800") is e + "[48;2;255;136;0mx" + e + "[49m"
+    expect terminal's rgb("x", 300, -5, 127.6) is e + "[38;2;255;0;128mx" + e + "[39m"
+    expect terminal's underline(5) is e + "[4m5" + e + "[24m"
+end
+
+to test_styles_nest
+    set e to esc()
+    # the red goes on after the green inside it ends
+    expect terminal's red("a" + terminal's green("b") + "c") is e + "[31ma" + e + "[32mb" + e + "[39m" + e + "[31mc"
+        + e + "[39m"
+    expect terminal's plain(terminal's bold(terminal's red("hi") + "!")) is "hi!"
+end
+
+to test_unknown_colors
+    try
+        terminal's colored("x", "chartreuse")
+        expect no
+    if it fails with why
+        expect position of "'chartreuse' isn't a colour the terminal knows" in why is 1
+    end
+end
+
+to test_plain_and_width
+    set e to esc()
+    expect terminal's plain(terminal's red("error") + ": " + terminal's link("docs", "https://example.com")) is "error: docs"
+    expect terminal's plain("no codes") is "no codes"
+    expect terminal's plain(e + "[1A" + e + "[2Kmoved") is "moved"
+    expect terminal's width(terminal's bold("hello")) is 5
+    expect terminal's width("日本語") is 6
+    expect terminal's width("héllo") is 5
+    expect terminal's width("e" + "́") is 1 # a combining accent takes no column
+    expect terminal's width("🙂 ok") is 5
+    expect terminal's width("one\nthree") is 5
+    expect terminal's width("") is 0
+end
+
+to test_aligned
+    expect terminal's aligned("ab", 5) is "ab   "
+    expect terminal's aligned("ab", 5, "right") is "   ab"
+    expect terminal's aligned("ab", 5, "center") is " ab  "
+    expect terminal's aligned("toolong", 3) is "toolong"
+    expect terminal's plain(terminal's aligned(terminal's red("ab"), 4)) is "ab  "
+    expect terminal's aligned("日本", 6, "right") is "  日本"
+end
+
+to test_table_of_records
+    set rows to list of (record with name "Ana", age 31), (record with name "Bo", age 7)
+    set made to terminal's table(rows)
+    expect made is "┌──────┬─────┐\n│ name │ age │\n├──────┼─────┤\n│ Ana  │  31 │\n│ Bo   │   7 │\n└──────┴─────┘"
+    expect terminal's table(rows, nothing, "ascii") is "+------+-----+\n| name | age |\n+------+-----+\n| Ana  |  31 |\n| Bo   |   7 |\n+------+-----+"
+    expect terminal's table(rows, nothing, "plain") is "name  age\n----  ---\nAna    31\nBo      7"
+    expect terminal's table(rows, nothing, "markdown") is "| name | age |\n| ---- | --: |\n| Ana  |  31 |\n| Bo   |   7 |"
+end
+
+to test_table_choices
+    # headers pick the fields, and say them in that order
+    set rows to list of (record with name "Ana", age 31, town "Pune"), (record with name "Bo", town "Goa")
+    expect terminal's table(rows, (list of "town", "age"), "plain") is "town  age\n----  ---\nPune   31\nGoa"
+    # lists, with no headers, or with them
+    set grid to list of (list of 1, "one"), (list of 10, "ten")
+    expect terminal's table(grid, nothing, "plain") is " 1  one\n10  ten"
+    expect terminal's table(grid, (list of "n", "word"), "plain") is " n  word\n--  ----\n 1  one\n10  ten"
+    # dictionaries, a cell of two lines, and a coloured cell lined up by what shows
+    set d to list of (dictionary where "k" is "a\nb", "v" is terminal's green("ok"))
+    expect terminal's plain(terminal's table(d)) is "┌───┬────┐\n│ k │ v  │\n├───┼────┤\n│ a │ ok │\n│ b │    │\n└───┴────┘"
+    expect terminal's table(empty list) is ""
+end
+
+to test_box
+    expect terminal's box("Moth 1.11\nready") is "┌───────────┐\n│ Moth 1.11 │\n│ ready     │\n└───────────┘"
+    expect terminal's box("hi", "round") is "╭────╮\n│ hi │\n╰────╯"
+    expect terminal's box("hi", "double") is "╔════╗\n║ hi ║\n╚════╝"
+    expect terminal's box("hi", "ascii") is "+----+\n| hi |\n+----+"
+end
+
+to test_progress_and_spinner
+    expect terminal's progress_bar(30, 120, 20) is "█████░░░░░░░░░░░░░░░  25%"
+    expect terminal's progress_bar(0, 10, 4) is "░░░░   0%"
+    expect terminal's progress_bar(10, 10, 4) is "████ 100%"
+    expect terminal's progress_bar(99, 10, 4) is "████ 100%"
+    expect terminal's progress_bar(5, 0, 4) is "████ 100%"
+    expect length of terminal's progress_bar(1, 3) is 35
+    expect terminal's spinner(1) is "⠋"
+    expect terminal's spinner(11) is "⠋"
+    expect terminal's spinner(12) is "⠙"
+end
+
+to test_again_and_colors_off
+    set e to esc()
+    expect terminal's again("50%") is e + "[1A" + e + "[2K50%"
+    expect terminal's again("a\nb") is e + "[1A" + e + "[2K" + e + "[1A" + e + "[2Ka\nb"
+    expect terminal's colors_are_on()
+    terminal's set_colors(no)
+    expect terminal's red("x") is "x"
+    expect terminal's bold(terminal's on_color("x", "blue")) is "x"
+    expect terminal's link("docs", "https://example.com") is "docs"
+    expect terminal's again("50%") is "50%"
+    expect terminal's clear_screen() is ""
+    terminal's set_colors(yes)
+    expect terminal's red("x") is e + "[31mx" + e + "[39m"
+end
