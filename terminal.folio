@@ -1,6 +1,6 @@
 # For programs run in a terminal: colours and styles, tables lined up in columns, boxes, progress bars that
 # draw over themselves, and spinners. With the ANSI codes every Linux and Mac terminal, and Windows Terminal,
-# understand. In Moth alone, so it works everywhere.
+# understand. In Folio alone, so it works everywhere.
 #
 #   use the package "terminal" as terminal
 #   say terminal's red("error:") " the file isn't there"
@@ -9,7 +9,7 @@
 #   set people to list of (record with name "Ana", age 31), (record with name "Bo", age 7)
 #   say terminal's table(people)                                 # lines around it; or:
 #   say terminal's table(people, nothing, "markdown")            # headers (nothing: the fields), and a style
-#   say terminal's box("Moth 1.11\nready", "round")
+#   say terminal's box("Folio 1.11\nready", "round")
 #   say terminal's progress_bar(30, 120, 20)                     # █████░░░░░░░░░░░░░░░  25%
 #   for each k from 1 to 120
 #       say terminal's again(terminal's progress_bar(k, 120, 20))    # the line before, drawn over

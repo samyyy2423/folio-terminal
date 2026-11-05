@@ -1,6 +1,6 @@
-# terminal.moth's tests: moth test terminal.test.moth
+# terminal.folio's tests: folio test terminal.test.folio
 
-use "terminal.moth" as terminal
+use "terminal.folio" as terminal
 
 # the escape character, to write the codes the tests expect
 to esc

@@ -1,11 +1,11 @@
 # terminal
 
-For [Moth](https://github.com/samyyy2423/moth) programs run in a terminal: colours and styles, tables lined
+For [Folio](https://github.com/samyyy2423/folio) programs run in a terminal: colours and styles, tables lined
 up in columns, boxes, progress bars that draw over themselves, and spinners. With the ANSI codes that every
-Linux and Mac terminal, and Windows Terminal, understand. In Moth alone, so it works everywhere Moth does.
+Linux and Mac terminal, and Windows Terminal, understand. In Folio alone, so it works everywhere Folio does.
 
 ```text
-moth add terminal
+folio add terminal
 ```
 
 ```
@@ -16,7 +16,7 @@ say terminal's bold(terminal's green("done")) " " terminal's colored("note", "br
 
 set people to list of (record with name "Ana", age 31), (record with name "Bo", age 7)
 say terminal's table(people)
-say terminal's box("Moth 1.11\nready", "round")
+say terminal's box("Folio 1.11\nready", "round")
 
 say terminal's progress_bar(0, 120, 20)
 for each k from 1 to 120
@@ -33,7 +33,7 @@ end
 │ Bo   │   7 │
 └──────┴─────┘
 ╭───────────╮
-│ Moth 1.11 │
+│ Folio 1.11 │
 │ ready     │
 ╰───────────╯
 ████████████████████ 100%
@@ -68,9 +68,9 @@ old console window shows the codes as they are, so a program for it can call `se
 ## Tests
 
 ```text
-moth test terminal.test.moth
+folio test terminal.test.folio
 ```
 
 ## License
 
-Apache License 2.0, as Moth is: see [LICENSE](LICENSE).
+Apache License 2.0, as Folio is: see [LICENSE](LICENSE).
